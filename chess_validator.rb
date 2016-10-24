@@ -1,6 +1,17 @@
 require 'pry'
 require_relative 'possible_moves'
 
+HORIZONTAL_TO_COORDS = {
+  'a' => 0,
+  'b' => 1,
+  'c' => 2,
+  'd' => 3,
+  'e' => 4,
+  'f' => 5,
+  'g' => 6,
+  'h' => 7
+}
+
 class Validator
   def initialize(board, moves)
     @moves = parse_moves(moves)
@@ -9,19 +20,40 @@ class Validator
   end
 
   def parse_moves(moves)
-    moves
+    lines = IO.readlines(moves)
+    lines.each{ |line| line.gsub!("\n", "") }
+
+    moves = lines.map do |move|
+      move.split(" ").each do |coord|
+        coord
+      end
+    end
+
+    coords = moves.each do |move|
+      move.map! do |coord|
+        hor_char, ver_char = coord.chars.to_a
+        hor = HORIZONTAL_TO_COORDS[hor_char]
+        ver = 8 - ver_char.to_i
+        [ver, hor]
+      end
+    end
+    coords
   end
 
-  def write_results(file="results.txt")
+  def write_results(file)
     IO.write(file, @results.join("\n"))
   end
 
-  def validate
+  def validate(file="results.txt")
     @moves.each do |move|
       move = Move.new(move, @board)
-      @results << move.is_legal?
+      if move.is_legal?
+        @results << "LEGAL"
+      else
+        @results << "ILLEGAL"
+      end
     end
-    p @results
+    write_results(file)
   end
 end
 
@@ -115,7 +147,7 @@ class Board
       color = /[wb]/.match(cell)[0]
       {type: type, color: color}
     else
-      :nil
+      {type: "nil", color: "nil"}
     end
   end
 
@@ -166,7 +198,7 @@ class Board
     end
 
     steps.each do |step|
-      if step != :nil
+      if step != "nil"
         next
       else
         return false
@@ -187,7 +219,7 @@ include PossibleMoves
   end
 
   def is_valid?(origin, dir_and_range, dest_piece)
-    if dest_piece != :nil
+    if dest_piece != "nil"
       dest_piece = dest_piece[:color]
     else
       dest_piece = false
@@ -209,37 +241,42 @@ end
 
 class Knight < Piece
   def initialize(color)
-    @valid_moves = %i[:j1]
+    super
+    @valid_moves = %i[j1]
   end
 end
 
 class Bishop < Piece
   def initialize(color)
+    super
     @valid_moves = diagonal
   end
 end
 
 class Queen < Piece
   def initialize(color)
+    super
     @valid_moves = straight + diagonal
   end
 end
 
 class King < Piece
   def initialize(color)
+    super
     @valid_moves = one_horizontal + one_up_diagonal + one_down_diagonal + one_up + one_down
   end
 end
 
 class Pawn < Piece
   def initialize(color)
+    super
     if @color == "w"
-      @valid_moves += two_up
+      @valid_moves = one_up + two_up
       if @dest_piece == "b"
         @valid_moves += one_up_diagonal
       end
     elsif @color == "b"
-      @valid_moves += two_down
+      @valid_moves += one_down + two_down
       if @dest_piece == "w"
         @valid_moves += one_down_diagonal
       end
@@ -247,26 +284,32 @@ class Pawn < Piece
   end
 end
 
-board = [ 
-    [:bR, nil, nil, nil, nil, nil, nil, nil], # a8 = [0][0] .. h8 = [0][7]
-    [nil, nil, nil, nil, nil, nil, nil, nil], # a7 = [1][0] .. h7 = [1][7]
-    [nil, nil, nil, nil, nil, nil, nil, nil],
-    [nil, nil, nil, nil, nil, nil, nil, nil], 
-    [nil, nil, nil, nil, nil, nil, nil, nil],
-    [nil, nil, nil, nil, nil, nil, nil, nil],
-    [nil, nil, nil, nil, nil, nil, nil, nil], # a2 = [6][0] .. h2 = [6][7]
-    [:wR, :wN, nil, nil, nil, nil, nil, nil]  # a1 = [7][0] .. h1 = [7][7]
-  ]
-
-# moves = [[:a1,:a2], [:a8,:a1], [:a1,:b1]]
-moves = [ 
-  [[7,0],[6,0]], # => true
-  [[7,0],[0,0]], # => true
-  [[7,0],[7,1]], # => false
-  [[0,0],[7,0]], # => true
-  [[7,1],[7,0]]  # => false
+simple_board = [ 
+  [:bR, :bN, :bB, :bQ, :bK, :bB, :bN, :bR],
+  [:bP, :bP, :bP, :bP, :bP, :bP, :bP, :bP],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [nil, nil, nil, nil, nil, nil, nil, nil],
+  [:wP, :wP, :wP, :wP, :wP, :wP, :wP, :wP],
+  [:wR, :wN, :wB, :wQ, :wK, :wB, :wN, :wR]
 ]
 
-validation = Validator.new(board, moves)
-validation.validate
+complex_board = [
+  [:bK, nil, nil, nil, nil, :bB, nil, nil],
+  [nil, nil, nil, nil, nil, :bP, nil, nil],
+  [nil, :bP, :wR, nil, :wB, nil, :bN, nil],
+  [:wN, nil, :bP, :bR, nil, nil, nil, :wP],
+  [nil, nil, nil, nil, :wK, :wQ, nil, :wP],
+  [:wR, nil, :bB, :wN, :wP, nil, nil, nil],
+  [nil, :wP, :bQ, nil, nil, :wP, nil, nil],
+  [nil, nil, nil, nil, nil, :wB, nil, nil]
+]
 
+simple_moves = "simple_moves.txt"
+simple_validation = Validator.new(simple_board, simple_moves)
+simple_validation.validate("simple_results.txt")
+
+complex_moves = "complex_moves.txt"
+comlpex_validation = Validator.new(complex_board, complex_moves)
+comlpex_validation.validate("complex_results.txt")
