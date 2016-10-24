@@ -133,11 +133,23 @@ end
 class Board
   def initialize(board)
     @board = parse_board(board)
-    @results = []
   end
 
   def parse_board(board)
-    board
+    lines = IO.readlines(board)
+    lines.each{ |line| line.gsub!("\n", "") }
+
+    lines.map! do |line|
+      line.split(" ").each do |cells|
+        cells
+      end
+    end
+    rows = lines.each do |cells|
+      cells.map! do |cell|
+        cell == "--" ? nil : cell.to_sym
+      end
+    end
+    rows
   end
 
   def read_cell(pos)
@@ -219,7 +231,7 @@ include PossibleMoves
   end
 
   def is_valid?(origin, dir_and_range, dest_piece)
-    if dest_piece != "nil"
+    if dest_piece[:type] != "nil"
       dest_piece = dest_piece[:color]
     else
       dest_piece = false
@@ -284,32 +296,13 @@ class Pawn < Piece
   end
 end
 
-simple_board = [ 
-  [:bR, :bN, :bB, :bQ, :bK, :bB, :bN, :bR],
-  [:bP, :bP, :bP, :bP, :bP, :bP, :bP, :bP],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [nil, nil, nil, nil, nil, nil, nil, nil],
-  [:wP, :wP, :wP, :wP, :wP, :wP, :wP, :wP],
-  [:wR, :wN, :wB, :wQ, :wK, :wB, :wN, :wR]
-]
 
-complex_board = [
-  [:bK, nil, nil, nil, nil, :bB, nil, nil],
-  [nil, nil, nil, nil, nil, :bP, nil, nil],
-  [nil, :bP, :wR, nil, :wB, nil, :bN, nil],
-  [:wN, nil, :bP, :bR, nil, nil, nil, :wP],
-  [nil, nil, nil, nil, :wK, :wQ, nil, :wP],
-  [:wR, nil, :bB, :wN, :wP, nil, nil, nil],
-  [nil, :wP, :bQ, nil, nil, :wP, nil, nil],
-  [nil, nil, nil, nil, nil, :wB, nil, nil]
-]
-
+simple_board = "simple_board.txt"
 simple_moves = "simple_moves.txt"
 simple_validation = Validator.new(simple_board, simple_moves)
 simple_validation.validate("simple_results.txt")
 
+complex_board = "complex_board.txt"
 complex_moves = "complex_moves.txt"
 comlpex_validation = Validator.new(complex_board, complex_moves)
 comlpex_validation.validate("complex_results.txt")
